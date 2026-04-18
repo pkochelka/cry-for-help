@@ -18,3 +18,4 @@ reports/
 uv.lock
 
 out.pkl
+benchmark_results.csv

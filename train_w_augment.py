@@ -17,7 +17,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 from torchvision import models, transforms
-from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
@@ -26,6 +26,10 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
+from augmentation import build_eval_transform, build_train_transform
+
+train_tfm = build_train_transform()
+eval_tfm = build_eval_transform()
 
 
 # ---------- 1. Load data ----------
@@ -34,28 +38,43 @@ def load_data():
     df = pd.read_pickle("out.pkl")
     return df
 
+
+def stratified_split(df, test_size=0.2, random_state=0):
+    train_df, val_df = train_test_split(
+        df,
+        test_size=test_size,
+        stratify=df["label"],
+        random_state=random_state,
+    )
+    return train_df.reset_index(drop=True), val_df.reset_index(drop=True)
+
 # ---------- 2. Feature extraction with pretrained ResNet50 ----------
-def extract_features(df, device="cuda" if torch.cuda.is_available() else "cpu"):
+def extract_features(df, tfm, n_aug=1, device="cuda" if torch.cuda.is_available() else "cpu"):
     model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V2)
-    model.fc = nn.Identity()  # output 2048-d embedding
+    model.fc = nn.Identity()
     model.eval().to(device)
 
-    tfm = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Resize(224, antialias=True),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225]),
-    ])
-
     feats = []
+    labels = []
+    scales = []
+
     with torch.no_grad():
-        for img in df["pixels"]:
-            x = tfm(img.astype(np.uint8)).unsqueeze(0).to(device)
-            feats.append(model(x).cpu().numpy().squeeze())
+        for i, row in df.iterrows():
+            img = row["pixels"].astype(np.uint8)
+
+            for _ in range(n_aug):
+                x = tfm(img).unsqueeze(0).to(device)
+                feat = model(x).cpu().numpy().squeeze()
+
+                feats.append(feat)
+                labels.append(row["label"])
+                scales.append(row["scale"])
+
     X = np.vstack(feats)
-    # append scale as an extra feature
-    X = np.hstack([X, df["scale"].values.reshape(-1, 1)])
-    return X
+    X = np.hstack([X, np.array(scales).reshape(-1, 1)])
+    y = np.array(labels)
+
+    return X, y
 
 
 # ---------- 3. Classifiers to compare ----------
@@ -93,10 +112,55 @@ def benchmark(X, y):
 
 if __name__ == "__main__":
     df = load_data()
-    y = LabelEncoder().fit_transform(df["label"])
-    print("Extracting ResNet50 features...")
-    X = extract_features(df)
-    print(f"Feature matrix: {X.shape}")
-    print("\nBenchmarking classifiers (5-fold stratified CV, weighted F1):\n")
-    results = benchmark(X, y)
-    results.to_csv("benchmark_results.csv", index=False)
+
+    # --- split first ---
+    train_df, val_df = stratified_split(df)
+
+    print(f"Train size: {len(train_df)}, Val size: {len(val_df)}")
+
+    # --- encode labels ---
+    le = LabelEncoder()
+    y_train_raw = le.fit_transform(train_df["label"])
+    y_val_raw = le.transform(val_df["label"])
+
+    # --- extract features ---
+    print("Extracting TRAIN features with augmentation...")
+    X_train, y_train = extract_features(
+        train_df,
+        tfm=train_tfm,
+        n_aug=5  # 🔥 important: increases dataset size
+    )
+
+    print("Extracting VAL features (no augmentation)...")
+    X_val, y_val = extract_features(
+        val_df,
+        tfm=eval_tfm,
+        n_aug=1
+    )
+
+    print("Train features:", X_train.shape)
+    print("Val features:", X_val.shape)
+
+    # --- benchmark on TRAIN using CV ---
+    print("\nBenchmarking classifiers on TRAIN (CV):\n")
+    results = benchmark(X_train, y_train)
+
+    # --- final evaluation on held-out VAL ---
+    print("\nFinal evaluation on validation set:\n")
+
+    best_model_name = results.iloc[0]["model"]
+    clf = get_classifiers()[best_model_name]
+
+    pipe = Pipeline([
+        ("scaler", StandardScaler()),
+        ("clf", clf)
+    ])
+
+    pipe.fit(X_train, y_train)
+    y_pred = pipe.predict(X_val)
+
+    from sklearn.metrics import f1_score
+    f1 = f1_score(y_val, y_pred, average="weighted")
+
+    print(f"Best model: {best_model_name}")
+    print(f"Validation F1 (weighted): {f1:.3f}")
