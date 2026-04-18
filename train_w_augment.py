@@ -96,20 +96,20 @@ def _timm_model(name):
 
 # ---------- 3. Feature extraction ----------
 def extract_features(df, model, tfm, n_aug=1):
-    feats, labels = [], []
+    feats, labels, scales = [], [], []
     with torch.no_grad():
         for i, row in df.iterrows():
             if i % 25 == 0:
                 print(f"  {i}/{len(df)}")
             img = row["pixels"].astype(np.uint8)
             for _ in range(n_aug):
-                x = tfm(img, row["scale"]).unsqueeze(0).to(DEVICE)
+                x = tfm(img).unsqueeze(0).to(DEVICE)
                 feat = model(x).cpu().numpy().squeeze()
                 feats.append(feat)
                 labels.append(row["label"])
-                #scales.append(row["scale"])
+                scales.append(row["scale"])
     X = np.vstack(feats)
-    #X = np.hstack([X, np.array(scales).reshape(-1, 1)])
+    X = np.hstack([X, np.array(scales).reshape(-1, 1)])
     return X, np.array(labels)
 
 
@@ -201,6 +201,8 @@ if __name__ == "__main__":
             X_tr, y_tr_raw = load_or_extract(bname, "train", train_df, train_tfm, 3, builder)
             X_va, y_va_raw = load_or_extract(bname, "val",   val_df,   eval_tfm,  1, builder)
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             print(f"  FAILED: {e}")
             continue
 
