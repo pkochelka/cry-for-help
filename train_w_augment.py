@@ -119,7 +119,7 @@ def get_classifiers():
         "LogReg_L2":  LogisticRegression(C=10.0, max_iter=3000, class_weight="balanced",
                                          solver="lbfgs", random_state=0),
         "LogReg_L1":  LogisticRegression(C=0.5,  max_iter=3000, class_weight="balanced",
-                                         penalty="l1", solver="saga", random_state=1),
+                                         l1_ratio="l1", solver="saga", random_state=1),
         "SVM_linear": SVC(C=1.0, kernel="linear", class_weight="balanced",
                           probability=True, random_state=2),
         "SVM_rbf":    SVC(C=5.0, kernel="rbf", gamma="scale", class_weight="balanced",

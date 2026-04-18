@@ -1,0 +1,17 @@
+{
+  "backbone_name": "convnextv2_base",
+  "backbone_timm_id": "convnextv2_base.fcmae_ft_in22k_in1k",
+  "classifier": "SVM_rbf",
+  "final_size": 256,
+  "classes": [
+    "Diabetes",
+    "PGOV_Glaukom",
+    "SklerózaMultiplex",
+    "SucheOko",
+    "ZdraviLudia"
+  ],
+  "val_f1_weighted": 0.7580924135342239,
+  "feature_l2_normalize": true,
+  "scale_is_feature": true,
+  "n_tta": 8
+}

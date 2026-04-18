@@ -11,13 +11,15 @@ Usage:
   e.g.  python predict.py sample.png 50
 """
 
-import sys, json, joblib
+import sys 
+import json
+import joblib
 import numpy as np
 import torch
 import timm
-from PIL import Image
 from sklearn.preprocessing import normalize
 from augmentation import build_eval_transform, build_train_transform
+from bmp_data_processing.scripts.bmp_to_pd import preprocess
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -30,10 +32,6 @@ def load_bundle(model_path="model.joblib", meta_path="model_meta.json"):
         meta["backbone_timm_id"], pretrained=True, num_classes=0, global_pool="avg"
     ).eval().to(DEVICE)
     return bundle["model"], bundle["label_encoder"], backbone, meta
-
-
-def image_to_array(path):
-    return np.array(Image.open(path).convert("RGB"), dtype=np.uint8)
 
 
 def extract_feature(img_arr, backbone, meta):
@@ -50,19 +48,19 @@ def extract_feature(img_arr, backbone, meta):
     return f
 
 
-def predict(image_path, scale,
+def predict(image_path,
             model_path="model.joblib", meta_path="model_meta.json"):
     clf, le, backbone, meta = load_bundle(model_path, meta_path)
-    img = image_to_array(image_path)
-    f = extract_feature(img, backbone, meta)
-    if meta.get("scale_is_feature", True):
-        f = np.hstack([f, np.array([[float(scale)]])])
+    result = preprocess(image_path, None)
+    f = extract_feature(result["pixels"], backbone, meta)
+    if meta.get("use_scale_feature", True):
+        f = np.hstack([f, np.array([[result["scale"]]])])
 
     probs = clf.predict_proba(f)[0]
     idx   = int(np.argmax(probs))
     label = le.classes_[idx]
 
-    print(f"\nImage: {image_path}   scale: {scale}")
+    print(f"\nImage: {image_path}   scale: {result['scale']}")
     print(f"Prediction: {label}\n")
     print("Per-class probabilities:")
     for cls, p in sorted(zip(le.classes_, probs), key=lambda t: -t[1]):
@@ -72,7 +70,7 @@ def predict(image_path, scale,
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 2:
         print("Usage: python predict.py IMAGE_PATH SCALE_UM")
         sys.exit(1)
-    predict(sys.argv[1], float(sys.argv[2]))
+    predict(sys.argv[1])

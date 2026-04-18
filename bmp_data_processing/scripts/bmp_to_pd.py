@@ -30,6 +30,7 @@ def trim_white_border(image_path):
     bbox = diff.getbbox()
     if bbox:
         return img.crop(bbox)
+    
     print("Image is completely white!")
     return None
 
@@ -45,7 +46,7 @@ def preprocess(image_path, lbl):
     return {
         "scale": scale,
         "label": lbl,
-        "pixels": arr,           # keep as np.ndarray in the DataFrame
+        "pixels": arr,
         "path": str(image_path),
     }
 
@@ -66,5 +67,4 @@ df = preprocess_all(bmp_files)
 print(df.head())
 
 # Optional persistence:
-df.to_pickle("out.pkl")     # preserves numpy arrays
-# df.to_parquet("out.parquet")  # needs arrays flattened or stored as bytes
+df.to_pickle("out.pkl")
