@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DiseasedTears — Diagnostic Analysis System</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav>
+  <span class="logo-wordmark">DiseasedTears</span>
+  <div class="logo-sep"></div>
+  <span class="logo-sub">Diagnostic Analysis System</span>
+  <div class="nav-actions">
+    <button id="demo-btn" class="btn-secondary no-print">Load Demo Scans</button>
+    <button id="export-btn" class="btn-secondary no-print">Export PDF</button>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header no-print">
+    <h1>Tear Sample Analysis</h1>
+    <p class="subtitle">AFM crystallography pattern classification for disease biomarker detection</p>
+  </div>
+
+  <div id="upload-zone" class="upload-zone no-print">
+    <input type="file" id="file-input" accept=".bmp,.png,.tiff,.tif" multiple hidden>
+    <div class="upload-icon">⬆</div>
+    <div class="upload-title">Drop scan images here or click to select</div>
+    <div class="upload-hint">BMP · PNG · TIFF · Multiple files accepted</div>
+    <div id="file-chips" class="queued-files"></div>
+    <button id="analyse-btn" class="btn-primary">Analyse Scans</button>
+  </div>
+
+  <div id="results-section" hidden>
+    <div class="summary-strip no-print">
+      <div class="summary-stat">
+        <div id="count-total" class="stat-num num-neutral">0</div>
+        <div class="stat-label">Total</div>
+      </div>
+      <div class="summary-stat">
+        <div id="count-high" class="stat-num num-high">0</div>
+        <div class="stat-label">High Risk</div>
+      </div>
+      <div class="summary-stat">
+        <div id="count-warning" class="stat-num num-warn">0</div>
+        <div class="stat-label">Warning</div>
+      </div>
+      <div class="summary-stat">
+        <div id="count-safe" class="stat-num num-safe">0</div>
+        <div class="stat-label">Clear</div>
+      </div>
+    </div>
+
+    <div class="filter-bar no-print">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="high">High Risk</button>
+      <button class="filter-btn" data-filter="warning">Warning</button>
+      <button class="filter-btn" data-filter="safe">Clear</button>
+    </div>
+
+    <div id="results-grid" class="results-grid"></div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  Results are AI-assisted and intended for research use only. Not a clinical diagnosis.
+</footer>
+
+<div id="lightbox" class="lightbox" hidden>
+  <div class="lightbox-inner">
+    <button id="lightbox-close" class="lightbox-close">✕</button>
+    <img id="lightbox-img" src="" alt="">
+    <div id="lightbox-caption" class="lightbox-caption"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -11,6 +11,7 @@ Runnable exploration scripts live in `scripts/`.
 
 ```bash
 uv venv
+uv pip install torch torchvision
 uv run python scripts/explore_dataset.py
 uv run python scripts/inspect_raw.py
 uv run python scripts/visualize_channels.py data/Diabetes/37_DM.010
@@ -54,3 +55,11 @@ The non-BMP files are Bruker NanoScope AFM measurement exports. Each raw file co
 - binary raster data blocks referenced by `Data offset` / `Data length`
 
 The paired `*_1.bmp` files are preview renders exported by the instrument/software.
+
+## Run WebUI
+
+```sh
+uv venv
+uv pip install torch torchvision --index https://download.pytorch.org/whl/cpu
+uv run uvicorn main:app --app-dir web # -- reload
+```
