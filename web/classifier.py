@@ -1,6 +1,12 @@
 from threading import Lock, Thread
 
+import os
+import tempfile
+
 import numpy as np
+
+from bmp_data_processing.scripts.bmp_to_pd import preprocess
+from predict import extract_feature, load_bundle
 
 CLASSES = ["Diabetes", "MS", "Glaucoma", "DryEye", "Healthy"]
 
@@ -65,3 +71,48 @@ def classify(image_bytes: bytes) -> dict[str, float]:
     raw = rng.exponential(scale=1.0, size=len(CLASSES))
     probs = (raw / raw.sum()).tolist()
     return dict(zip(CLASSES, probs))
+_LABEL_ALIASES = {
+    "Diabetes": "Diabetes",
+    "MS": "MS",
+    "SklerozaMultiplex": "MS",
+    "SklerózaMultiplex": "MS",
+    "PGOV_Glaukom": "Glaucoma",
+    "Glaucoma": "Glaucoma",
+    "SucheOko": "DryEye",
+    "DryEye": "DryEye",
+    "ZdraviLudia": "Healthy",
+    "Healthy": "Healthy",
+}
+
+_clf, _le, _backbone, _meta = load_bundle()
+
+
+def _normalize_probs(classes, probs) -> dict:
+    out = dict.fromkeys(CLASSES, 0.0)
+    for cls, p in zip(classes, probs):
+        key = _LABEL_ALIASES.get(cls)
+        if key:
+            out[key] += float(p)
+    return out
+
+
+def classify(image_bytes: bytes) -> dict:
+    """Accepts raw BMP bytes. Returns {"label", "scale", "probabilities"}."""
+    with tempfile.NamedTemporaryFile(suffix=".bmp", delete=False) as tmp:
+        tmp.write(image_bytes)
+        tmp_path = tmp.name
+    try:
+        result = preprocess(tmp_path, None)
+        f = extract_feature(result["pixels"], _backbone, _meta)
+        if _meta.get("use_scale_feature", True):
+            f = np.hstack([f, np.array([[result["scale"]]])])
+        probs = _clf.predict_proba(f)[0]
+        idx = int(np.argmax(probs))
+        raw_label = _le.classes_[idx]
+        return {
+            "label": _LABEL_ALIASES.get(raw_label, raw_label),
+            "scale": float(result["scale"]),
+            "probabilities": _normalize_probs(_le.classes_, probs),
+        }
+    finally:
+        os.unlink(tmp_path)

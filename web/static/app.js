@@ -205,6 +205,9 @@ async function runClassification(files) {
   }
   hideRunnerProgress();
   classifying = false;
+  queuedFiles = [];
+  document.getElementById('file-input').value = '';
+  updateChips();
 }
 
 // ── File queue ──────────────────────────────────────────────
