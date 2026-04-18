@@ -1,6 +1,6 @@
 # Raw data notes
 
-The non-BMP files in `TRAIN_SET/` are Bruker NanoScope AFM measurement files.
+The non-BMP files in `data/` are Bruker NanoScope AFM measurement files.
 
 ## What is inside one raw file
 
@@ -59,7 +59,7 @@ The `*_1.bmp` files are fixed-size previews (`704 x 575`) exported by the micros
 
 ## Dataset quirks
 
-- `TRAIN_SET/` is about 4.1G and should stay out of git.
+- `data/` is about 4.1G and should stay out of git.
 - There is one extra preview in `Diabetes` (`37_DM_.bmp`).
 - Missing preview files were found for:
   - `PGOV_Glaukom/25_PV_PGOV.017`

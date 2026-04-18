@@ -2,16 +2,20 @@
 
 Initial exploration repo for the crystallized-tears train set.
 
+Reusable raw-data helpers live in `raw_data.py`.
+Runnable exploration scripts live in `scripts/`.
+
 ## Setup
 
 ```bash
 uv venv
 uv run python scripts/explore_dataset.py
+uv run python scripts/inspect_raw.py
 ```
 
 ## Data
 
-The local dataset lives in `TRAIN_SET/` and is intentionally ignored by git because it is large (~4.1G) and likely sensitive.
+The local dataset lives in `data/` and is intentionally ignored by git because it is large (~4.1G) and likely sensitive.
 
 Folder labels in the train set:
 - `Diabetes`
