@@ -33,6 +33,16 @@
     <button id="analyse-btn" class="btn-primary">Analyse Scans</button>
   </div>
 
+  <div id="classification-progress" class="runner-progress no-print" hidden>
+    <div class="runner-progress-head">
+      <span>Classification progress</span>
+      <strong id="runner-count">0 / 0</strong>
+    </div>
+    <div class="runner-track">
+      <div id="runner-bar" class="runner-bar"></div>
+    </div>
+  </div>
+
   <div id="results-section" hidden>
     <div class="summary-strip no-print">
       <div class="summary-stat">
@@ -73,6 +83,18 @@
     <button id="lightbox-close" class="lightbox-close">✕</button>
     <img id="lightbox-img" src="" alt="">
     <div id="lightbox-caption" class="lightbox-caption"></div>
+  </div>
+</div>
+
+<div id="model-loader" class="model-loader" aria-live="polite" aria-busy="true">
+  <div class="model-loader-card">
+    <div class="spinner"></div>
+    <div class="model-loader-title">Warming up model</div>
+    <div id="model-loader-stage" class="model-loader-stage">Preparing model</div>
+    <div class="model-loader-track">
+      <div id="model-loader-bar" class="model-loader-bar"></div>
+    </div>
+    <div id="model-loader-value" class="model-loader-value">0%</div>
   </div>
 </div>
 

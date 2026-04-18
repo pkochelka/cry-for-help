@@ -35,6 +35,7 @@ def _normalize_probs(classes, probs) -> dict:
             out[key] += float(p)
     return out
 
+from classifier import classify, get_model_status, start_model_warmup
 
 BASE = Path(__file__).parent
 STATIC_DIR = BASE / "static"
@@ -50,6 +51,8 @@ clf, le, backbone, meta = load_bundle()
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon():
     return FileResponse(STATIC_DIR / "favicon.ico")
+app = FastAPI(title="TearScan")
+start_model_warmup()
 
 
 @app.post("/classify")
@@ -92,6 +95,11 @@ def list_demo_scans():
     exts = {".bmp", ".png", ".tiff", ".tif"}
     files = sorted(f.name for f in DEMO_DIR.iterdir() if f.suffix.lower() in exts)
     return {"filenames": files}
+
+
+@app.get("/api/model-status")
+def model_status():
+    return get_model_status()
 
 
 if DEMO_DIR.exists():

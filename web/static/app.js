@@ -6,11 +6,13 @@ const DISEASE_LABELS = {
   DryEye: 'Dry Eye', Healthy: 'Healthy',
 };
 const CIRC = 87.96; // 2π × r=14
+const MODEL_POLL_INTERVAL_MS = 350;
 
 let results = [];
 let activeFilter = 'all';
 let classifying = false;
 let queuedFiles = [];
+let modelReady = false;
 
 // ── Risk helpers ────────────────────────────────────────────
 function pctLevel(pct) {
@@ -96,6 +98,68 @@ function render() {
     results.filter(r => r.riskLevel === 'safe').length;
 }
 
+function setRunnerProgress(done, total) {
+  const wrap = document.getElementById('classification-progress');
+  const count = document.getElementById('runner-count');
+  const bar = document.getElementById('runner-bar');
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  wrap.hidden = false;
+  count.textContent = `${done} / ${total}`;
+  bar.style.width = `${pct}%`;
+}
+
+function hideRunnerProgress() {
+  const wrap = document.getElementById('classification-progress');
+  const count = document.getElementById('runner-count');
+  const bar = document.getElementById('runner-bar');
+  count.textContent = '0 / 0';
+  bar.style.width = '0%';
+  wrap.hidden = true;
+}
+
+function renderModelLoader(status) {
+  const overlay = document.getElementById('model-loader');
+  const stage = document.getElementById('model-loader-stage');
+  const value = document.getElementById('model-loader-value');
+  const bar = document.getElementById('model-loader-bar');
+
+  const progress = Math.max(0, Math.min(100, Number(status.progress || 0)));
+  stage.textContent = status.stage || 'Loading model';
+  value.textContent = `${progress}%`;
+  bar.style.width = `${progress}%`;
+
+  if (status.loaded) {
+    modelReady = true;
+    overlay.hidden = true;
+  } else {
+    overlay.hidden = false;
+  }
+}
+
+async function ensureModelReady() {
+  if (modelReady) return;
+
+  const overlay = document.getElementById('model-loader');
+  overlay.hidden = false;
+
+  while (!modelReady) {
+    try {
+      const resp = await fetch('/api/model-status');
+      if (resp.ok) {
+        const status = await resp.json();
+        renderModelLoader(status);
+      } else {
+        renderModelLoader({ stage: 'Preparing model', progress: 5, loaded: false });
+      }
+    } catch (_) {
+      renderModelLoader({ stage: 'Waiting for server', progress: 5, loaded: false });
+    }
+
+    if (modelReady) break;
+    await new Promise(resolve => setTimeout(resolve, MODEL_POLL_INTERVAL_MS));
+  }
+}
+
 // ── Classification ──────────────────────────────────────────
 async function classifyFile(file) {
   const fd = new FormData();
@@ -107,12 +171,18 @@ async function classifyFile(file) {
 
 async function runClassification(files) {
   if (classifying || !files.length) return;
+
+  await ensureModelReady();
+
   classifying = true;
   results = [];
 
   const resultsSection = document.getElementById('results-section');
 
   resultsSection.hidden = false;
+  setRunnerProgress(0, files.length);
+
+  let finished = 0;
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
@@ -128,8 +198,12 @@ async function runClassification(files) {
       render();
     } catch (err) {
       console.error('classify failed:', file.name, err);
+    } finally {
+      finished += 1;
+      setRunnerProgress(finished, files.length);
     }
   }
+  hideRunnerProgress();
   classifying = false;
 }
 
@@ -246,4 +320,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
   lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+  ensureModelReady();
 });
