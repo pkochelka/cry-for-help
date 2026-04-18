@@ -1,0 +1,7 @@
+[project]
+name = "hack-kosice-tears"
+version = "0.1.0"
+description = "Exploration of crystallized tear train set"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = []
