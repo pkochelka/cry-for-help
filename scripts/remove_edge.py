@@ -3,25 +3,29 @@ import cv2
 import pytesseract
 import json
 import numpy as np
+from pathlib import Path
+
+def label(path_name):
+    path = Path(path_name)
+
+    return path.parent.name
 
 def is_5(img1):
     img2 = Image.open("number5.jpg")
 
     return list(img1.getdata()) == list(img2.getdata())
 
-def chop_number(image):
-    img = Image.open(image)
+def chop_number(img):
     w, h = img.size
 
     cropped = img.crop((460, h-30, w-45, h))
     return cropped
 
-def chop_bottom(image_path, output_path, x):
-    img = Image.open(image_path)
+def chop_bottom(img, x):
     w, h = img.size
 
     cropped = img.crop((0, 0, w, h - x))
-    cropped.save(output_path)
+    return cropped
 
 def trim_white_border(image_path):
     img = Image.open(image_path).convert("RGB")
@@ -41,30 +45,52 @@ def trim_white_border(image_path):
     else:
         print("Image is completely white!")
 
-def save(output_path, img, scale, label):
-    # Convert to array
-    arr = np.array(img)
+# def save(output_path, img, scale, label):
+#     # Convert to array
+
+
+#     # Save to JSON
+#     with open(output_path, "a") as f:
+#         json.dump(data, f)
+
+def preprocess(image_path, label):
+    img = trim_white_border(image_path)
+    new_img = chop_bottom(img, 39)
+    number = chop_number(img)
+    
+    scale = 92.5 if is_5(number) else 50.0
+
+
+    arr = np.array(new_img)
 
     # Convert to list (JSON can't store numpy arrays)
-    data = arr.tolist()
-
-    data = {
+    jsondata = {
         "scale": scale,
         "label": label,
         "pixels": arr.tolist()
     }
 
-    # Save to JSON
-    with open(output_path, "w") as f:
-        json.dump(data, f)
+    return jsondata
 
-def preprocess(image_path, output_path):
-    img = trim_white_border(image_path)
-    data = chop_bottom(img)
-    number = chop_number(img, "tmp.png")
-    
-    scale = 92.5 if is_5(number) else 50.0
+def preprocess_all(file_names, output):
 
+    with open(output, "a") as f:
+        
+        f.write("{")
+        for i in range(0, len(file_names)):
+            path = file_names[i]
+            l = label(path)
 
-    save(output_path, data, scale, "label")
+            json.dump(preprocess(path, l), f, indent=4)
 
+            if i !=  len(file_names) -1:
+                f.write(",")
+
+        f.write("}")
+        
+
+# root = Path("TRAIN_SET")
+
+# bmp_files = list(root.rglob("*.bmp"))
+
+# preprocess_all(bmp_files, "out.json")
