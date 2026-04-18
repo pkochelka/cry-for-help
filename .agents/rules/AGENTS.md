@@ -1,7 +1,7 @@
 Keep this file minimalistic; note only surprising project-specific things.
 
 ## Project-specific environment notes
-- `TRAIN_SET/` is local-only, ~4.1G, and should stay out of git.
+- `data/` is local-only, ~4.1G, and should stay out of git.
 - Raw measurement files are Bruker NanoScope AFM exports with text headers plus binary image blocks.
 
 ## Important commands
@@ -13,3 +13,4 @@ Keep this file minimalistic; note only surprising project-specific things.
 
 ## User preferences
 - Be concise.
+- Adding dependencies is allowed when useful; use `uv add`.
