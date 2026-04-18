@@ -16,3 +16,5 @@ __pycache__/
 reports/
 
 uv.lock
+
+out.pkl

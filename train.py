@@ -31,7 +31,7 @@ from lightgbm import LGBMClassifier
 # ---------- 1. Load data ----------
 def load_data():
     # EDIT THIS to load your dataframe
-    df = pd.read_pickle("tears.pkl")
+    df = pd.read_pickle("out.pkl")
     return df
 
 
@@ -49,7 +49,7 @@ def extract_features(df, device="cuda" if torch.cuda.is_available() else "cpu"):
 
     feats = []
     with torch.no_grad():
-        for img in df["image"]:
+        for img in df["pixels"]:
             x = tfm(img.astype(np.uint8)).unsqueeze(0).to(device)
             feats.append(model(x).cpu().numpy().squeeze())
     X = np.vstack(feats)

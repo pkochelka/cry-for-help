@@ -76,6 +76,7 @@ def preprocess_all(file_names, output):
         
         f.write("{")
         for i in range(0, len(file_names)):
+            print(i/len(file_names)*100)
             path = file_names[i]
             l = label(path)
 

@@ -9,4 +9,9 @@ dependencies = [
     "numpy",
     "Pillow",
     "matplotlib>=3.10.8",
+    "torch",
+    "torchvision",
+    "scikit-learn",
+    "xgboost",
+    "lightgbm"
 ]
