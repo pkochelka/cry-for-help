@@ -7,6 +7,10 @@ base_dir = "data"
 
 data = []
 
+'''
+This script should cut out the real images and detect the scale (50 or 92 micrometers), labeling it with the scale as well
+'''
+
 for label in os.listdir(base_dir):
     class_dir = os.path.join(base_dir, label)
     
