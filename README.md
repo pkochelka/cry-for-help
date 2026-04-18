@@ -4,6 +4,7 @@ Initial exploration repo for the crystallized-tears train set.
 
 Reusable raw-data helpers live in `raw_data.py`.
 Reusable higher-level summaries/inspection objects live in `raw_analysis.py`.
+Reusable visualization helpers live in `raw_visualization.py`.
 Runnable exploration scripts live in `scripts/`.
 
 ## Setup
@@ -12,6 +13,7 @@ Runnable exploration scripts live in `scripts/`.
 uv venv
 uv run python scripts/explore_dataset.py
 uv run python scripts/inspect_raw.py
+uv run python scripts/visualize_channels.py data/Diabetes/37_DM.010
 ```
 
 ## Data
@@ -35,6 +37,13 @@ summary = summarize_dataset("data")
 
 measurement.channels[0].stats
 summary.class_summaries[0]
+```
+
+```python
+from raw_visualization import create_channel_figure, save_channel_figure
+
+fig = create_channel_figure("data/Diabetes/37_DM.010")
+save_channel_figure("data/Diabetes/37_DM.010", "reports/example.png")
 ```
 
 ## Raw files

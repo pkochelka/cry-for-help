@@ -8,8 +8,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from raw_analysis import inspect_measurement, render_measurement_inspection
-from raw_data import DEFAULT_DATA_ROOT, iter_raw_measurements
+from raw_data_processing.raw_analysis import inspect_measurement, render_measurement_inspection
+from raw_data_processing.raw_data import DEFAULT_DATA_ROOT, iter_raw_measurements
 
 
 def choose_default_file(root: Path) -> Path:
