@@ -31,7 +31,7 @@ function cardLevel(probs) {
 const LEVEL_ORDER = { high: 0, warning: 1, safe: 2 };
 const LEVEL_COLOR = { high: '#b82c2c', warning: '#c07a18', safe: '#3a8858' };
 const BADGE_CLASS = { high: 'risk-high', warning: 'risk-warn', safe: 'risk-safe' };
-const BADGE_LABEL = { high: 'High Risk', warning: 'Warning', safe: 'Clear' };
+const BADGE_LABEL = { high: 'High Risk', warning: 'Warning', safe: 'Healthy' };
 
 // ── SVG arc gauge ───────────────────────────────────────────
 function arcSVG(pct) {
