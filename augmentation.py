@@ -31,9 +31,6 @@ def build_train_transform(img_size: int = 224):
             interpolation=v2.InterpolationMode.BILINEAR,
         ),
 
-        # --- mild photometric jitter (microscope illumination varies) ---
-        v2.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.1, hue=0.0),
-
         # --- sensor / focus realism ---
         v2.RandomApply([v2.GaussianBlur(kernel_size=5, sigma=(0.1, 1.5))], p=0.3),
         v2.RandomApply([v2.GaussianNoise(mean=0.0, sigma=0.02)], p=0.3),

@@ -16,17 +16,19 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-from torchvision import models, transforms
-from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
+from torchvision import models
+from sklearn.model_selection import GridSearchCV, StratifiedKFold, cross_val_score, train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from xgboost import XGBClassifier
-from lightgbm import LGBMClassifier
+from sklearn.ensemble import StackingClassifier, VotingClassifier
 from augmentation import build_eval_transform, build_train_transform
+import os
+from sklearn.metrics import f1_score, classification_report
+
+CACHE_DIR = "features_cache"
+os.makedirs(CACHE_DIR, exist_ok=True)
 
 train_tfm = build_train_transform()
 eval_tfm = build_eval_transform()
@@ -60,6 +62,7 @@ def extract_features(df, tfm, n_aug=1, device="cuda" if torch.cuda.is_available(
 
     with torch.no_grad():
         for i, row in df.iterrows():
+            print(i/len(df)*100)
             img = row["pixels"].astype(np.uint8)
 
             for _ in range(n_aug):
@@ -77,90 +80,140 @@ def extract_features(df, tfm, n_aug=1, device="cuda" if torch.cuda.is_available(
     return X, y
 
 
+def load_or_extract(name, df, tfm, n_aug):
+    path = os.path.join(CACHE_DIR, f"{name}.npz")
+    try:
+        data = np.load(path)
+        print(f"Loaded cached {name} features from {path}")
+        return data["X"], data["y"]
+    except (FileNotFoundError, OSError):
+        print(f"Extracting {name} features...")
+        X, y = extract_features(df, tfm=tfm, n_aug=n_aug)
+        np.savez(path, X=X, y=y)
+        return X, y
+
+
+
 # ---------- 3. Classifiers to compare ----------
 def get_classifiers():
     return {
-        "LogReg (L2)":      LogisticRegression(max_iter=2000, class_weight="balanced", C=1.0),
-        "LogReg (L1)":      LogisticRegression(max_iter=2000, class_weight="balanced",
-                                               penalty="l1", solver="saga", C=0.5, random_state=0),
-        "SVM (RBF)":        SVC(kernel="rbf", class_weight="balanced", C=1.0, gamma="scale"),
-        "SVM (linear)":     SVC(kernel="linear", class_weight="balanced", C=1.0, random_state=0),
-        "kNN":              KNeighborsClassifier(n_neighbors=5, weights="distance"),
-        "Random Forest":    RandomForestClassifier(n_estimators=500, class_weight="balanced",
-                                                   random_state=0),
-        "Gradient Boost":   GradientBoostingClassifier(n_estimators=300, random_state=0),
-        "XGBoost":          XGBClassifier(n_estimators=400, max_depth=4, learning_rate=0.05,
-                                          eval_metric="mlogloss", random_state=0),
-        "LightGBM":         LGBMClassifier(n_estimators=400, max_depth=-1, learning_rate=0.05,
-                                           class_weight="balanced", random_state=0, verbose=-1),
+        "LogReg (L2)": (
+            LogisticRegression(max_iter=2000, class_weight="balanced", solver="lbfgs", random_state=0),
+            {"clf__C": [10.0]},
+        ),
+        "LogReg (L1)": (
+            LogisticRegression(max_iter=2000, class_weight="balanced", l1_ratio=0.0, solver="saga", random_state=0),
+            {"clf__C": [0.5]},
+        ),
+        "SVM (linear)": (
+            SVC(kernel="linear", class_weight="balanced", probability=True, random_state=0),
+            {"clf__C": [10.0]},
+        ),
     }
 
 
-# ---------- 4. Benchmark ----------
-def benchmark(X, y):
-    cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=0)
+# ---------- 4. Benchmark with optional grid search ----------
+def benchmark(X, y, inner_cv_splits=3):
+    outer_cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=0)
+    inner_cv = StratifiedKFold(n_splits=inner_cv_splits, shuffle=True, random_state=1)
+
     results = []
-    for name, clf in get_classifiers().items():
+    best_params_log = {}
+
+    for name, (clf, param_grid) in get_classifiers().items():
         pipe = Pipeline([("scaler", StandardScaler()), ("clf", clf)])
-        scores = cross_val_score(pipe, X, y, cv=cv, scoring="f1_weighted", n_jobs=-1)
+
+        if param_grid:
+            search = GridSearchCV(
+                pipe, param_grid, cv=inner_cv,
+                scoring="f1_weighted", n_jobs=-1, refit=True,
+            )
+            # Outer CV with the search object as estimator
+            scores = cross_val_score(search, X, y, cv=outer_cv, scoring="f1_weighted", n_jobs=1)
+            # Fit once on full data to surface best params
+            search.fit(X, y)
+            best_params_log[name] = search.best_params_
+            best_params_str = str(search.best_params_)
+        else:
+            scores = cross_val_score(pipe, X, y, cv=outer_cv, scoring="f1_weighted", n_jobs=-1)
+            best_params_log[name] = {}
+            best_params_str = "defaults"
+
         results.append((name, scores.mean(), scores.std()))
-        print(f"{name:18s}  F1w = {scores.mean():.3f} ± {scores.std():.3f}")
+        print(f"{name:18s}  F1w = {scores.mean():.3f} ± {scores.std():.3f}  params={best_params_str}")
+
     results.sort(key=lambda r: -r[1])
     print("\nBest:", results[0][0])
-    return pd.DataFrame(results, columns=["model", "f1_weighted_mean", "f1_weighted_std"])
+    return (
+        pd.DataFrame(results, columns=["model", "f1_weighted_mean", "f1_weighted_std"]),
+        best_params_log,
+    )
 
-
+# ---------- 5. Main ----------
 if __name__ == "__main__":
     df = load_data()
-
-    # --- split first ---
     train_df, val_df = stratified_split(df)
+    print(f"Train: {len(train_df)}, Val: {len(val_df)}")
 
-    print(f"Train size: {len(train_df)}, Val size: {len(val_df)}")
-
-    # --- encode labels ---
+    # Encode labels from df (single source of truth)
     le = LabelEncoder()
-    y_train_raw = le.fit_transform(train_df["label"])
-    y_val_raw = le.transform(val_df["label"])
+    le.fit(train_df["label"])
 
-    # --- extract features ---
-    print("Extracting TRAIN features with augmentation...")
-    X_train, y_train = extract_features(
-        train_df,
-        tfm=train_tfm,
-        n_aug=5  # 🔥 important: increases dataset size
+    X_train, y_train_raw = load_or_extract("train", train_df, train_tfm, n_aug=3)
+    X_val,   y_val_raw   = load_or_extract("val",   val_df,   eval_tfm,  n_aug=1)
+
+    y_train = le.transform(y_train_raw)
+    y_val   = le.transform(y_val_raw)
+
+    print(f"Train features: {X_train.shape}, Val features: {X_val.shape}")
+
+    # Benchmark
+    print("\nBenchmarking classifiers on TRAIN (nested CV + grid search):\n")
+    results, best_params = benchmark(X_train, y_train)
+
+    # Best params found during benchmark (update these from your run)
+    estimators = [
+        ("logreg_l2", Pipeline([("scaler", StandardScaler()),
+            ("clf", LogisticRegression(max_iter=2000, class_weight="balanced", solver="lbfgs", C=best_params["LogReg (L2)"]["clf__C"]))])),
+        ("logreg_l1", Pipeline([("scaler", StandardScaler()),
+            ("clf", LogisticRegression(max_iter=2000, class_weight="balanced", penalty="l1", solver="saga", C=best_params["LogReg (L1)"]["clf__C"]))])),
+        ("svm_linear", Pipeline([("scaler", StandardScaler()),
+            ("clf", SVC(kernel="linear", class_weight="balanced", probability=True, C=best_params["SVM (linear)"]["clf__C"]))])),
+    ]
+
+    # --- Stacking (LR meta-learner) ---
+    stacking = StackingClassifier(
+        estimators=estimators,
+        final_estimator=LogisticRegression(max_iter=1000, class_weight="balanced", C=1.0),
+        cv=StratifiedKFold(n_splits=3, shuffle=True, random_state=0),
+        stack_method="predict_proba",
+        passthrough=False,
+        n_jobs=-1,
     )
+    stacking.fit(X_train, y_train)
+    y_pred_stack = stacking.predict(X_val)
+    print(f"Stacking F1w    : {f1_score(y_val, y_pred_stack, average='weighted'):.3f}")
 
-    print("Extracting VAL features (no augmentation)...")
-    X_val, y_val = extract_features(
-        val_df,
-        tfm=eval_tfm,
-        n_aug=1
-    )
+    print("\nStacking classification report:")
+    print(classification_report(y_val, y_pred_stack, target_names=le.classes_))
 
-    print("Train features:", X_train.shape)
-    print("Val features:", X_val.shape)
+    # Final eval with best model, refitted with its best params
+    print("\nFinal evaluation on held-out validation set:\n")
+    best_name = results.iloc[0]["model"]
+    best_clf, best_grid = get_classifiers()[best_name]
 
-    # --- benchmark on TRAIN using CV ---
-    print("\nBenchmarking classifiers on TRAIN (CV):\n")
-    results = benchmark(X_train, y_train)
+    pipe = Pipeline([("scaler", StandardScaler()), ("clf", best_clf)])
 
-    # --- final evaluation on held-out VAL ---
-    print("\nFinal evaluation on validation set:\n")
-
-    best_model_name = results.iloc[0]["model"]
-    clf = get_classifiers()[best_model_name]
-
-    pipe = Pipeline([
-        ("scaler", StandardScaler()),
-        ("clf", clf)
-    ])
+    if best_grid:
+        inner_cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=1)
+        pipe = GridSearchCV(pipe, best_grid, cv=inner_cv, scoring="f1_weighted", n_jobs=-1, refit=True)
 
     pipe.fit(X_train, y_train)
     y_pred = pipe.predict(X_val)
 
-    from sklearn.metrics import f1_score
-    f1 = f1_score(y_val, y_pred, average="weighted")
-
-    print(f"Best model: {best_model_name}")
-    print(f"Validation F1 (weighted): {f1:.3f}")
+    print(f"Best model     : {best_name}")
+    if best_grid:
+        print(f"Best params    : {pipe.best_params_}")
+    print(f"Validation F1w : {f1_score(y_val, y_pred, average='weighted'):.3f}")
+    print("\nClassification report:")
+    print(classification_report(y_val, y_pred, target_names=le.classes_))
