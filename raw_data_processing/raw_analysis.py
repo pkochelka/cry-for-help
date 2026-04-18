@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 
-from raw_data import ChannelMetadata, DEFAULT_DATA_ROOT, RawMeasurementMetadata, get_channel_metadata, is_raw_measurement, parse_measurement_metadata, read_channel_data
+from raw_data_processing.raw_data import ChannelMetadata, DEFAULT_DATA_ROOT, RawMeasurementMetadata, get_channel_metadata, is_raw_measurement, parse_measurement_metadata, read_channel_data
 
 
 @dataclass(frozen=True)

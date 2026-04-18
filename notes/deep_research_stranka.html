@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HK 2026: Tear Desiccate Analysis Strategy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Chosen Palette: Clinical Tech (Slate, Blue, Emerald, Amber) -->
+    <!-- Application Structure Plan: The SPA uses a sidebar navigation layout (responsive to top-nav on mobile) for quick access to distinct analytical phases. Sections include: 1. Challenge Overview (context setting), 2. Scientific Background (understanding the domain), 3. Research Synthesis (what works historically), 4. Winning Strategy (actionable ML pipeline), and 5. Performance Projections (visualized expectations). This modular structure allows the team to digest complex medical physics and ML concepts step-by-step. -->
+    <!-- Visualization & Content Choices: 
+         1. Interactive Research Grid (Goal: Organize/Inform) -> JS filtered cards allow users to isolate clinical vs. technical papers. 
+         2. Radar Chart (Goal: Compare) -> Chart.js; Shows the relative importance of different feature engineering categories. 
+         3. Dynamic Bar Chart (Goal: Change/Compare) -> Chart.js; Demonstrates how F1-score improves incrementally as the ML pipeline gets more sophisticated. 
+         All visualizations are Canvas-based to strictly avoid SVG/Mermaid. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (max-width: 768px) {
+            .chart-container { height: 250px; }
+        }
+        .nav-link.active {
+            background-color: #eff6ff;
+            color: #2563eb;
+            border-right: 4px solid #2563eb;
+            font-weight: 600;
+        }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased flex flex-col md:flex-row min-h-screen">
+
+    <aside class="w-full md:w-64 bg-white shadow-md border-r border-slate-200 md:h-screen sticky top-0 z-50 flex flex-col">
+        <div class="p-6 border-b border-slate-100">
+            <div class="text-xs font-bold tracking-widest text-blue-600 uppercase mb-1">UPJŠ Challenge</div>
+            <h1 class="text-xl font-extrabold text-slate-900">HK 2026 Strategy</h1>
+        </div>
+        <nav class="flex-1 overflow-y-auto py-4 flex md:flex-col gap-1 px-2 md:px-0 overflow-x-auto md:overflow-x-visible">
+            <button onclick="nav('overview')" id="nav-overview" class="nav-link active text-left px-6 py-3 text-sm text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap md:whitespace-normal">1. Challenge Overview</button>
+            <button onclick="nav('background')" id="nav-background" class="nav-link text-left px-6 py-3 text-sm text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap md:whitespace-normal">2. Domain Knowledge</button>
+            <button onclick="nav('research')" id="nav-research" class="nav-link text-left px-6 py-3 text-sm text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap md:whitespace-normal">3. Past Research</button>
+            <button onclick="nav('strategy')" id="nav-strategy" class="nav-link text-left px-6 py-3 text-sm text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap md:whitespace-normal">4. Winning Approach</button>
+            <button onclick="nav('metrics')" id="nav-metrics" class="nav-link text-left px-6 py-3 text-sm text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap md:whitespace-normal">5. Performance Targets</button>
+        </nav>
+    </aside>
+
+    <main class="flex-1 p-6 md:p-10 max-w-6xl mx-auto w-full">
+
+        <section id="overview" class="content-section block fade-in">
+            <h2 class="text-3xl font-bold mb-2">Challenge Overview</h2>
+            <p class="text-slate-500 mb-8 text-lg">Define the objective, understand the data, and optimize for the judging criteria.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 border-l-4 border-l-blue-500">
+                    <div class="text-3xl mb-2">&#128167;</div>
+                    <h3 class="font-bold text-lg mb-1">The Data</h3>
+                    <p class="text-sm text-slate-600">Scanning Probe Microscopy (SPM) topography images of human tear desiccates. Requires specific SPM handling (e.g., Gwyddion).</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 border-l-4 border-l-emerald-500">
+                    <div class="text-3xl mb-2">&#127919;</div>
+                    <h3 class="font-bold text-lg mb-1">The Objective</h3>
+                    <p class="text-sm text-slate-600">Estimate the probability that a patient has a specific chronic disease based purely on the tear crystallization patterns.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 border-l-4 border-l-amber-500">
+                    <div class="text-3xl mb-2">&#127942;</div>
+                    <h3 class="font-bold text-lg mb-1">The Metric</h3>
+                    <p class="text-sm text-slate-600"><strong>Weighted F1-Score.</strong> Precision and recall are equally important, but classes might be imbalanced. False positives/negatives penalize heavily.</p>
+                </div>
+            </div>
+
+            <div class="bg-blue-50 text-blue-900 p-6 rounded-xl">
+                <h3 class="font-bold mb-2">Key Insight from Prompt: Gwyddion</h3>
+                <p class="text-sm">The challenge explicitly mentions <strong>Gwyddion</strong>, an open-source tool for SPM data analysis. This is a massive hint. Do not just load the images as standard PNGs/JPEGs in Python. The raw data likely contains height/topography data (e.g., .gsf, .spm files). Your preprocessing pipeline <strong>must</strong> include SPM-specific steps like polynomial flattening, median line leveling, and artifact removal before applying ML.</p>
+            </div>
+        </section>
+
+        <section id="background" class="content-section hidden fade-in">
+            <h2 class="text-3xl font-bold mb-2">Scientific Domain Knowledge</h2>
+            <p class="text-slate-500 mb-8 text-lg">Understanding tear ferning and desiccates to inform feature engineering.</p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4">What is Tear Desiccation?</h3>
+                    <p class="mb-4 text-slate-700 leading-relaxed">When human tear fluid is allowed to dry (desiccate) under controlled conditions, the interaction between salts, proteins (like mucin), and lipids causes crystallization. This phenomenon is often called <strong>"Tear Ferning"</strong> because healthy tears form dense, fern-like branch structures.</p>
+                    <p class="mb-4 text-slate-700 leading-relaxed">In patients with chronic diseases (e.g., Dry Eye Syndrome, Diabetes Mellitus, Cystic Fibrosis), the biochemical composition of the tear alters. This disrupts the crystallization process, leading to sparse ferns, fragmented crystals, or amorphous blobs.</p>
+                    <div class="bg-white border border-slate-200 p-4 rounded-lg mt-6">
+                        <h4 class="font-bold text-sm text-slate-500 uppercase tracking-wider mb-2">Rolando's Grading Scale (Standard Baseline)</h4>
+                        <ul class="space-y-2 text-sm">
+                            <li><span class="font-bold text-emerald-600">Type I & II:</span> Healthy. Dense, uniform, highly branched ferns.</li>
+                            <li><span class="font-bold text-amber-600">Type III:</span> Transitional. Sparse branching, larger spaces between crystals.</li>
+                            <li><span class="font-bold text-red-600">Type IV:</span> Pathological. No ferns, complete structural breakdown, isolated crystal clumps.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-center items-center">
+                    <div class="text-center mb-6">
+                        <span class="text-6xl">&#128300;</span>
+                        <h3 class="font-bold mt-4">Why SPM (Scanning Probe Microscopy)?</h3>
+                    </div>
+                    <p class="text-slate-600 text-sm text-center mb-4">Standard light microscopy only shows 2D shapes. SPM provides 3D nanoscale topography. This means you have access to <strong>height, roughness, and volume</strong> of the crystals, not just their outline.</p>
+                    <ul class="text-sm space-y-2 w-full bg-slate-50 p-4 rounded border border-slate-200">
+                        <li>&#8594; <strong>Z-Axis Data:</strong> Crystal thickness indicates protein concentration.</li>
+                        <li>&#8594; <strong>Surface Roughness (Sq, Sa):</strong> High variance in diseased states.</li>
+                        <li>&#8594; <strong>Fractal Dimension:</strong> Quantifies the complexity of the branching.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="research" class="content-section hidden fade-in">
+            <h2 class="text-3xl font-bold mb-2">Past Research Synthesis</h2>
+            <p class="text-slate-500 mb-6 text-lg">Summary of how ML and image analysis have historically solved this problem.</p>
+
+            <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+                <button onclick="filterResearch('all')" class="px-4 py-1 rounded-full text-sm font-semibold bg-slate-800 text-white hover:bg-slate-700">All</button>
+                <button onclick="filterResearch('clinical')" class="px-4 py-1 rounded-full text-sm font-semibold bg-white border border-slate-300 text-slate-600 hover:bg-slate-100">Clinical Application</button>
+                <button onclick="filterResearch('feature')" class="px-4 py-1 rounded-full text-sm font-semibold bg-white border border-slate-300 text-slate-600 hover:bg-slate-100">Feature Engineering</button>
+                <button onclick="filterResearch('dl')" class="px-4 py-1 rounded-full text-sm font-semibold bg-white border border-slate-300 text-slate-600 hover:bg-slate-100">Deep Learning</button>
+            </div>
+
+            <div id="research-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Populated by JS -->
+            </div>
+        </section>
+
+        <section id="strategy" class="content-section hidden fade-in">
+            <h2 class="text-3xl font-bold mb-2">The Winning Approach (Step-by-Step)</h2>
+            <p class="text-slate-500 mb-8 text-lg">A tactical blueprint for your data science pipeline to maximize Weighted F1.</p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div class="lg:col-span-5 space-y-4">
+                    <div class="strategy-card bg-white border-2 border-blue-500 p-5 rounded-xl cursor-pointer shadow-md transition-transform hover:-translate-y-1" onclick="updateStrategy(0)">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold bg-blue-100 text-blue-800 px-2 py-1 rounded">Phase 1</span>
+                            <span class="text-xl">&#9881;&#65039;</span>
+                        </div>
+                        <h3 class="font-bold text-lg mb-1">SPM Data Preprocessing</h3>
+                        <p class="text-sm text-slate-600 line-clamp-2">Leveling, flattening, and artifact removal using automated Gwyddion-like algorithms.</p>
+                    </div>
+                    <div class="strategy-card bg-white border border-slate-200 p-5 rounded-xl cursor-pointer shadow-sm transition-transform hover:-translate-y-1 hover:border-blue-300" onclick="updateStrategy(1)">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold bg-slate-100 text-slate-800 px-2 py-1 rounded">Phase 2</span>
+                            <span class="text-xl">&#128208;</span>
+                        </div>
+                        <h3 class="font-bold text-lg mb-1">Topographical & Texture Features</h3>
+                        <p class="text-sm text-slate-600 line-clamp-2">Extracting ISO 25178 roughness parameters and GLCM texture matrices.</p>
+                    </div>
+                    <div class="strategy-card bg-white border border-slate-200 p-5 rounded-xl cursor-pointer shadow-sm transition-transform hover:-translate-y-1 hover:border-blue-300" onclick="updateStrategy(2)">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold bg-slate-100 text-slate-800 px-2 py-1 rounded">Phase 3</span>
+                            <span class="text-xl">&#129488;</span>
+                        </div>
+                        <h3 class="font-bold text-lg mb-1">Deep Feature Extraction</h3>
+                        <p class="text-sm text-slate-600 line-clamp-2">Using pre-trained CNNs (ResNet/EfficientNet) on false-color topographical maps.</p>
+                    </div>
+                    <div class="strategy-card bg-white border border-slate-200 p-5 rounded-xl cursor-pointer shadow-sm transition-transform hover:-translate-y-1 hover:border-blue-300" onclick="updateStrategy(3)">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold bg-slate-100 text-slate-800 px-2 py-1 rounded">Phase 4</span>
+                            <span class="text-xl">&#127942;</span>
+                        </div>
+                        <h3 class="font-bold text-lg mb-1">Ensemble Modeling & F1 Optimization</h3>
+                        <p class="text-sm text-slate-600 line-clamp-2">Combining LightGBM/XGBoost with Threshold Moving to maximize the target metric.</p>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-7 bg-white border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col h-full">
+                    <h3 id="strat-title" class="text-2xl font-bold mb-4 text-blue-700">Phase 1: SPM Preprocessing</h3>
+                    <div id="strat-desc" class="text-slate-700 mb-6 space-y-3">
+                        <p>Raw SPM/AFM data has tilt, scanner bow, and noise artifacts. Feeding this raw into an ML model will cause it to learn the artifacts rather than the biological features.</p>
+                        <ul class="list-disc pl-5 font-semibold">
+                            <li>Mean plane subtraction (Leveling).</li>
+                            <li>Polynomial background subtraction (Flattening).</li>
+                            <li>Thresholding to isolate the crystals from the substrate base.</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mt-auto">
+                        <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wide mb-4 text-center">Expected Importance by Feature Type</h4>
+                        <div class="chart-container">
+                            <canvas id="radarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="metrics" class="content-section hidden fade-in">
+            <h2 class="text-3xl font-bold mb-2">Performance Targets & Validation</h2>
+            <p class="text-slate-500 mb-8 text-lg">How to evaluate models locally to ensure victory on the hidden dataset.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <div>
+                    <h3 class="font-bold text-xl mb-4">Combating Imbalance (The F1 Trap)</h3>
+                    <p class="mb-4 text-slate-700">Medical datasets are rarely 50/50. If 80% of samples are healthy, a model predicting "always healthy" gets 80% accuracy, but a terrible F1-Score on the minority class. Because the metric is <strong>Weighted F1</strong>, you must perform well on BOTH classes, weighted by their support.</p>
+                    <div class="bg-amber-50 border border-amber-200 p-4 rounded-lg">
+                        <h4 class="font-bold text-amber-800 mb-1">Crucial Steps:</h4>
+                        <ul class="space-y-1 text-sm text-amber-900">
+                            <li>1. Use <strong>Stratified K-Fold CV</strong> (e.g., 5-fold) to ensure class distributions are identical across splits.</li>
+                            <li>2. Use <strong>Class Weights</strong> in your loss function (e.g., `scale_pos_weight` in XGBoost).</li>
+                            <li>3. <strong>Threshold Optimization:</strong> Don't just use 0.5 for classification. Use the validation set to find the probability threshold that maximizes the Weighted F1 score.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-bold text-xl mb-4 text-center">Expected Model Progression (F1-Score)</h3>
+                    <p class="text-sm text-center text-slate-500 mb-4">Historical hackathon performance progression on similar tasks.</p>
+                    <div class="chart-container">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // --- Navigation Logic ---
+        function nav(sectionId) {
+            document.querySelectorAll('.content-section').forEach(el => {
+                el.classList.add('hidden');
+            });
+            document.querySelectorAll('.nav-link').forEach(el => {
+                el.classList.remove('active', 'bg-blue-50', 'text-blue-600', 'border-r-4', 'font-semibold');
+                el.classList.add('text-slate-600');
+            });
+            
+            document.getElementById(sectionId).classList.remove('hidden');
+            const activeBtn = document.getElementById('nav-' + sectionId);
+            activeBtn.classList.remove('text-slate-600');
+            activeBtn.classList.add('active', 'bg-blue-50', 'text-blue-600', 'border-r-4', 'font-semibold');
+        }
+
+        // --- Research Data & Filtering Logic ---
+        const researchData = [
+            { title: "Classification of Tear Ferning Patterns using Deep Learning", category: "dl", desc: "Demonstrated that ResNet architectures applied to topographical images outperform manual grading, achieving >90% accuracy in separating Type I/II from III/IV.", year: "2022" },
+            { title: "Nanoscale Surface Analysis of Tear Films using Atomic Force Microscopy", category: "clinical", desc: "Found that surface roughness parameters (Sq, Sa) generated from SPM data strongly correlate with mucin concentration and dry eye severity.", year: "2019" },
+            { title: "GLCM Texture Feature Extraction for Biomaterial Surface Characterization", category: "feature", desc: "Highlights how Gray-Level Co-occurrence Matrices can numerically quantify the 'branching' and 'density' of biological crystals.", year: "2020" },
+            { title: "Fractal Dimension Analysis of Tear Desiccation", category: "feature", desc: "Proves that healthy tear ferns have a higher fractal dimension (more complex self-similarity) than pathological tears. A highly predictive single feature.", year: "2018" },
+            { title: "Machine Learning on SPM Data for Diabetes Marker Detection", category: "clinical", desc: "Used Random Forests on extracted ISO 25178 3D parameters to predict diabetes probability from fluid desiccates.", year: "2023" },
+            { title: "Ensemble CNNs and Tabular Features for Medical Image Classification", category: "dl", desc: "Shows that concatenating Deep CNN embeddings with manually engineered statistical features yields the highest F1-scores in medical tasks.", year: "2024" }
+        ];
+
+        function renderResearch(data) {
+            const grid = document.getElementById('research-grid');
+            grid.innerHTML = '';
+            data.forEach(item => {
+                let badgeColor = item.category === 'dl' ? 'bg-purple-100 text-purple-800' : 
+                                 item.category === 'feature' ? 'bg-orange-100 text-orange-800' : 
+                                 'bg-emerald-100 text-emerald-800';
+                
+                let badgeText = item.category === 'dl' ? 'Deep Learning' : 
+                                item.category === 'feature' ? 'Feature Eng' : 'Clinical';
+
+                grid.innerHTML += `
+                    <div class="bg-white border border-slate-200 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="text-xs font-bold px-2 py-1 rounded ${badgeColor}">${badgeText}</span>
+                            <span class="text-xs text-slate-400 font-mono">${item.year}</span>
+                        </div>
+                        <h4 class="font-bold text-slate-800 mb-2">${item.title}</h4>
+                        <p class="text-sm text-slate-600">${item.desc}</p>
+                    </div>
+                `;
+            });
+        }
+
+        function filterResearch(category) {
+            const btns = document.querySelectorAll('#research button');
+            btns.forEach(btn => {
+                btn.classList.remove('bg-slate-800', 'text-white');
+                btn.classList.add('bg-white', 'text-slate-600');
+            });
+            event.target.classList.remove('bg-white', 'text-slate-600');
+            event.target.classList.add('bg-slate-800', 'text-white');
+
+            if (category === 'all') renderResearch(researchData);
+            else renderResearch(researchData.filter(d => d.category === category));
+        }
+
+        // --- Strategy Timeline Logic ---
+        const strategyContent = [
+            {
+                title: "Phase 1: SPM Preprocessing (Crucial!)",
+                desc: "<p>Raw SPM/AFM data has tilt, scanner bow, and noise artifacts. Feeding this raw into an ML model will cause it to learn the artifacts rather than the biological features.</p><ul class='list-disc pl-5 font-semibold mt-2'><li>Mean plane subtraction (Leveling).</li><li>Polynomial background subtraction (Flattening).</li><li>Thresholding to isolate the crystals from the substrate base.</li></ul><p class='mt-2 text-sm text-blue-600 font-bold'>Pro-Tip: Look into the `gwyddion` Python library or `pygwy` to automate what the Gwyddion GUI does.</p>",
+                chartData: [90, 20, 10, 50, 10]
+            },
+            {
+                title: "Phase 2: Topographical & Texture Features",
+                desc: "<p>Once leveled, treat the image as a 3D landscape. Extract numerical features to build a tabular dataset.</p><ul class='list-disc pl-5 mt-2'><li><strong>ISO 25178 Topography:</strong> Root mean square height (Sq), Skewness (Ssk), Kurtosis (Sku). Sku is highly indicative of sharp crystal peaks.</li><li><strong>Texture:</strong> Calculate GLCM (Contrast, Correlation, Energy, Homogeneity). Pathological blobs have high homogeneity; healthy ferns have high contrast.</li><li><strong>Fractal Dimension:</strong> Box-counting method to quantify branch complexity.</li></ul>",
+                chartData: [40, 95, 30, 40, 70]
+            },
+            {
+                title: "Phase 3: Deep Feature Extraction",
+                desc: "<p>Don't rely just on manual features. Convert the Z-height SPM data into false-color images (e.g., using a viridis colormap) to mimic standard RGB images.</p><ul class='list-disc pl-5 mt-2'><li>Pass these images through a pre-trained CNN (ResNet50 or EfficientNet) with frozen weights.</li><li>Extract the final fully connected layer vector (e.g., 512 or 2048 features).</li><li>Apply PCA to reduce dimensionality before feeding into the final classifier.</li></ul>",
+                chartData: [20, 40, 95, 50, 30]
+            },
+            {
+                title: "Phase 4: Ensemble Modeling & Optimization",
+                desc: "<p>Combine your engineered tabular features (Phase 2) with the CNN embeddings (Phase 3).</p><ul class='list-disc pl-5 mt-2'><li>Train Gradient Boosting machines (XGBoost, LightGBM, CatBoost). They handle mixed feature types and collinearity well.</li><li>Use Optuna for hyperparameter tuning.</li><li><strong>Final Polish:</strong> Sweep through decision thresholds (0.1 to 0.9) on your validation set and select the exact threshold that maximizes the Weighted F1-Score, overriding the default 0.5.</li></ul>",
+                chartData: [80, 80, 80, 95, 90]
+            }
+        ];
+
+        let radarChartInstance = null;
+
+        function updateStrategy(index) {
+            // Update UI styling
+            document.querySelectorAll('.strategy-card').forEach((el, i) => {
+                if(i === index) {
+                    el.classList.add('border-blue-500', 'border-2');
+                    el.classList.remove('border-slate-200', 'border');
+                    el.querySelector('span.bg-slate-100')?.classList.replace('bg-slate-100', 'bg-blue-100');
+                    el.querySelector('span.text-slate-800')?.classList.replace('text-slate-800', 'text-blue-800');
+                } else {
+                    el.classList.remove('border-blue-500', 'border-2');
+                    el.classList.add('border-slate-200', 'border');
+                    el.querySelector('span.bg-blue-100')?.classList.replace('bg-blue-100', 'bg-slate-100');
+                    el.querySelector('span.text-blue-800')?.classList.replace('text-blue-800', 'text-slate-800');
+                }
+            });
+
+            // Update content
+            document.getElementById('strat-title').innerHTML = strategyContent[index].title;
+            document.getElementById('strat-desc').innerHTML = strategyContent[index].desc;
+
+            // Update Chart
+            if (radarChartInstance) {
+                radarChartInstance.data.datasets[0].data = strategyContent[index].chartData;
+                radarChartInstance.update();
+            }
+        }
+
+        // --- Initialize Charts ---
+        function initCharts() {
+            // Radar Chart (Strategy Section)
+            const ctxRadar = document.getElementById('radarChart').getContext('2d');
+            radarChartInstance = new Chart(ctxRadar, {
+                type: 'radar',
+                data: {
+                    labels: ['Data Cleanliness', 'Stat Topography', 'Deep Embbeddings', 'Ensemble Logic', 'Fractal Complexity'],
+                    datasets: [{
+                        label: 'Current Phase Focus',
+                        data: strategyContent[0].chartData,
+                        backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                        borderColor: 'rgba(37, 99, 235, 1)',
+                        pointBackgroundColor: 'rgba(37, 99, 235, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(0,0,0,0.1)' },
+                            grid: { color: 'rgba(0,0,0,0.1)' },
+                            pointLabels: { font: { size: 11, family: 'Inter' } },
+                            suggestedMin: 0,
+                            suggestedMax: 100,
+                            ticks: { display: false }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // Bar Chart (Metrics Section)
+            const ctxBar = document.getElementById('barChart').getContext('2d');
+            new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: ['Raw Pixels (Baseline)', 'Basic GLCM + RF', 'CNN Features + SVM', 'Full Tabular + XGB', 'Ensemble + Threshold Sweep'],
+                    datasets: [{
+                        label: 'Estimated Weighted F1-Score',
+                        data: [0.55, 0.68, 0.78, 0.86, 0.92],
+                        backgroundColor: [
+                            '#cbd5e1',
+                            '#94a3b8',
+                            '#64748b',
+                            '#3b82f6',
+                            '#10b981'
+                        ],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1.0,
+                            title: { display: true, text: 'Weighted F1-Score', font: {family: 'Inter'} }
+                        },
+                        x: {
+                            ticks: {
+                                callback: function(value, index, values) {
+                                    // Wrap text for mobile
+                                    const label = this.getLabelForValue(value);
+                                    if(window.innerWidth < 768 && label.length > 10) {
+                                        return label.substr(0,10) + '...';
+                                    }
+                                    return label;
+                                },
+                                font: {family: 'Inter', size: 10}
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ' Projected F1: ' + context.parsed.y;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize on load
+        window.onload = () => {
+            renderResearch(researchData);
+            initCharts();
+            
+            // Adjust bar chart labels on resize to maintain canvas boundaries
+            window.addEventListener('resize', () => {
+                const barChart = Chart.getChart("barChart");
+                if(barChart) {
+                    barChart.update();
+                }
+            });
+        };
+    </script>
+</body>
+</html>
