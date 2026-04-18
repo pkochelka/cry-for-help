@@ -8,53 +8,56 @@ Design rules for this domain:
     scale and contradict the feature.
   - Color can carry diagnostic info; keep color jitter mild, avoid hue shifts.
 """
-
 import torch
 from torchvision.transforms import v2
+from torchvision.transforms.v2 import functional as F
 
 
-# ---------- Core augmentation pipeline ----------
-def build_train_transform(img_size: int = 224):
-    return v2.Compose([
-        v2.ToImage(),                                   # HWC uint8/ndarray -> Image tensor
-        v2.ToDtype(torch.float32, scale=True),          # [0,1]
+REFERENCE_SCALE_MM = 92  # 50mm images get downsampled to match
+FINAL_SIZE = 224
 
-        # --- required: full rotation + translation invariance ---
+
+class NormalizeToScale:
+    """Resize so µm/pixel matches REFERENCE_SCALE_MM."""
+    def __init__(self, reference_mm=REFERENCE_SCALE_MM):
+        self.ref = reference_mm
+
+    def __call__(self, img, scale_mm):
+        factor = scale_mm / self.ref
+        if factor == 1.0:
+            return img
+        _, h, w = img.shape
+        return F.resize(img, [round(h * factor), round(w * factor)], antialias=True)
+
+
+def build_train_transform():
+    post_crop = v2.Compose([
         v2.RandomHorizontalFlip(p=0.5),
         v2.RandomVerticalFlip(p=0.5),
-        v2.RandomAffine(
-            degrees=180,                                # ±180°, any direction
-            translate=(0.5, 0.5),                       # up to ±50% in x and y
-            scale=None,                                 # keep native scale (scale is a feature)
-            shear=0,
-            fill=0,                                     # black fill; use 'reflect' via padding if preferred
-            interpolation=v2.InterpolationMode.BILINEAR,
-        ),
-
-        # --- sensor / focus realism ---
-        v2.RandomApply([v2.GaussianBlur(kernel_size=5, sigma=(0.1, 1.5))], p=0.3),
+        v2.RandomAffine(degrees=180, translate=(0.0, 0.0), scale=None, shear=0,
+                        fill=0, interpolation=v2.InterpolationMode.BILINEAR),
+        v2.RandomApply([v2.GaussianBlur(5, sigma=(0.1, 1.5))], p=0.3),
         v2.RandomApply([v2.GaussianNoise(mean=0.0, sigma=0.02)], p=0.3),
-
-        # --- occlusion regularizer ---
         v2.RandomErasing(p=0.25, scale=(0.02, 0.1), ratio=(0.3, 3.3), value=0),
-
-        # --- ImageNet normalization (matches pretrained ResNet50 feature extractor) ---
         v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
+
+    def transform(img, scale_mm):
+        img = v2.ToImage()(img)
+        img = v2.ToDtype(torch.float32, scale=True)(img)
+        img = NormalizeToScale()(img, scale_mm)     # 523->523 (92mm) or 523->284 (50mm)
+        img = v2.RandomCrop(FINAL_SIZE)(img)        # random 224 crop = translation aug
+        return post_crop(img)
+
+    return transform
 
 
 def build_eval_transform():
-    return v2.Compose([
-        v2.ToImage(),
-        v2.ToDtype(torch.float32, scale=True),
-        v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
-
-
-# ---------- Quick usage example ----------
-if __name__ == "__main__":
-    import numpy as np
-    tfm = build_train_transform()
-    fake_img = (np.random.rand(224, 224, 3) * 255).astype(np.uint8)
-    out = tfm(fake_img)
-    print("Output:", out.shape, out.dtype, out.min().item(), out.max().item())
+    def transform(img, scale_mm):
+        img = v2.ToImage()(img)
+        img = v2.ToDtype(torch.float32, scale=True)(img)
+        img = NormalizeToScale()(img, scale_mm)
+        img = v2.CenterCrop(FINAL_SIZE)(img)
+        return v2.Normalize(mean=[0.485, 0.456, 0.406],
+                            std=[0.229, 0.224, 0.225])(img)
+    return transform
