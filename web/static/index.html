@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DiseasedTears — Diagnostic Analysis System</title>
+  <title>Cry For Help — non-invasive diagnosis</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <nav>
-  <span class="logo-wordmark">DiseasedTears</span>
+  <span class="logo-wordmark">Cry For Help</span>
   <div class="logo-sep"></div>
   <span class="logo-sub">Diagnostic Analysis System</span>
   <div class="nav-actions">
@@ -27,20 +27,10 @@
   <div id="upload-zone" class="upload-zone no-print">
     <input type="file" id="file-input" accept=".bmp,image/bmp" multiple hidden>
     <div class="upload-icon">⬆</div>
-    <div class="upload-title">Drop scan images here or click to select</div>
+    <div class="upload-title">Drop scans here or click to select</div>
     <div class="upload-hint">BMP only · Multiple files accepted</div>
     <div id="file-chips" class="queued-files"></div>
-    <button id="analyse-btn" class="btn-primary">Analyse Scans</button>
-  </div>
-
-  <div id="classification-progress" class="runner-progress no-print" hidden>
-    <div class="runner-progress-head">
-      <span>Classification progress</span>
-      <strong id="runner-count">0 / 0</strong>
-    </div>
-    <div class="runner-track">
-      <div id="runner-bar" class="runner-bar"></div>
-    </div>
+    <button id="analyse-btn" class="btn-primary">Analyse</button>
   </div>
 
   <div id="results-section" hidden>
@@ -59,7 +49,7 @@
       </div>
       <div class="summary-stat">
         <div id="count-safe" class="stat-num num-safe">0</div>
-        <div class="stat-label">Healthy</div>
+        <div class="stat-label">Clear</div>
       </div>
     </div>
 
@@ -67,7 +57,7 @@
       <button class="filter-btn active" data-filter="all">All</button>
       <button class="filter-btn" data-filter="high">High Risk</button>
       <button class="filter-btn" data-filter="warning">Warning</button>
-      <button class="filter-btn" data-filter="safe">Healthy</button>
+      <button class="filter-btn" data-filter="safe">Clear</button>
     </div>
 
     <div id="results-grid" class="results-grid"></div>
@@ -75,7 +65,7 @@
 </main>
 
 <footer class="site-footer">
-  Results are AI-assisted and intended for research use only. Not a clinical diagnosis.
+  Results are AI-assisted and intended for research use only. Consult your doctor.
 </footer>
 
 <div id="lightbox" class="lightbox" hidden>
@@ -83,18 +73,6 @@
     <button id="lightbox-close" class="lightbox-close">✕</button>
     <img id="lightbox-img" src="" alt="">
     <div id="lightbox-caption" class="lightbox-caption"></div>
-  </div>
-</div>
-
-<div id="model-loader" class="model-loader" aria-live="polite" aria-busy="true">
-  <div class="model-loader-card">
-    <div class="spinner"></div>
-    <div class="model-loader-title">Warming up model</div>
-    <div id="model-loader-stage" class="model-loader-stage">Preparing model</div>
-    <div class="model-loader-track">
-      <div id="model-loader-bar" class="model-loader-bar"></div>
-    </div>
-    <div id="model-loader-value" class="model-loader-value">0%</div>
   </div>
 </div>
 
