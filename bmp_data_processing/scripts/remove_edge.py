@@ -1,6 +1,4 @@
 from PIL import Image, ImageChops
-import cv2
-import pytesseract
 import json
 import numpy as np
 from pathlib import Path
@@ -89,8 +87,8 @@ def preprocess_all(file_names, output):
         f.write("}")
         
 
-# root = Path("TRAIN_SET")
+root = Path("data")
 
-# bmp_files = list(root.rglob("*.bmp"))
+bmp_files = list(root.rglob("*.bmp"))
 
-# preprocess_all(bmp_files, "out.json")
+preprocess_all(bmp_files, "out.json")
