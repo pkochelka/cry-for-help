@@ -55,7 +55,6 @@ def preprocess_all(file_names):
     records = []
     n = len(file_names)
     for i, path in enumerate(file_names):
-        print(f"{i / n * 100:.1f}%")
         records.append(preprocess(path, label(path)))
     return pd.DataFrame(records)
 

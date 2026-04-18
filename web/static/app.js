@@ -139,8 +139,18 @@ function updateChips() {
     queuedFiles.map(f => `<div class="queued-file">${f.name}</div>`).join('');
 }
 
+function isBmp(file) {
+  return file.name.toLowerCase().endsWith('.bmp');
+}
+
 function addFiles(list) {
-  queuedFiles = [...queuedFiles, ...Array.from(list)];
+  const arr = Array.from(list);
+  const bmps = arr.filter(isBmp);
+  const rejected = arr.length - bmps.length;
+  if (rejected > 0) {
+    alert(`${rejected} file(s) skipped — only .bmp images are supported.`);
+  }
+  queuedFiles = [...queuedFiles, ...bmps];
   updateChips();
 }
 

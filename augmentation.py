@@ -13,7 +13,7 @@ from torchvision.transforms import v2
 
 FINAL_SIZE = 256
 
-def build_train_transform():
+def build_train_transform(size=FINAL_SIZE):
     post_crop = v2.Compose([
         v2.RandomHorizontalFlip(p=0.5),
         v2.RandomVerticalFlip(p=0.5),
@@ -30,17 +30,17 @@ def build_train_transform():
     def transform(img):
         img = v2.ToImage()(img)
         img = v2.ToDtype(torch.float32, scale=True)(img)
-        img = v2.Resize(FINAL_SIZE)(img)
+        img = v2.Resize(size)(img)
         return post_crop(img)
 
     return transform
 
 
-def build_eval_transform():
+def build_eval_transform(size=FINAL_SIZE):
     def transform(img):
         img = v2.ToImage()(img)
         img = v2.ToDtype(torch.float32, scale=True)(img)
-        img = v2.Resize(FINAL_SIZE)(img)
+        img = v2.Resize(size)(img)
         return v2.Normalize(mean=[0.485, 0.456, 0.406],
                             std=[0.229, 0.224, 0.225])(img)
     return transform

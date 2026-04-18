@@ -13,4 +13,7 @@ dependencies = [
     "python-multipart",
     "scikit-learn",
     "uvicorn[standard]",
+    "torch",
+    "timm",
+    "joblib"
 ]
