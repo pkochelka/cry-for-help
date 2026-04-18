@@ -3,6 +3,7 @@
 Initial exploration repo for the crystallized-tears train set.
 
 Reusable raw-data helpers live in `raw_data.py`.
+Reusable higher-level summaries/inspection objects live in `raw_analysis.py`.
 Runnable exploration scripts live in `scripts/`.
 
 ## Setup
@@ -23,6 +24,18 @@ Folder labels in the train set:
 - `SklerózaMultiplex`
 - `SucheOko`
 - `ZdraviLudia`
+
+## Python usage
+
+```python
+from raw_analysis import inspect_measurement, summarize_dataset
+
+measurement = inspect_measurement("data/Diabetes/37_DM.010")
+summary = summarize_dataset("data")
+
+measurement.channels[0].stats
+summary.class_summaries[0]
+```
 
 ## Raw files
 
