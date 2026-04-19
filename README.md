@@ -61,5 +61,5 @@ The paired `*_1.bmp` files are preview renders exported by the instrument/softwa
 ```sh
 uv venv
 uv pip install torch torchvision --index https://download.pytorch.org/whl/cpu
-uv run uvicorn main:app --app-dir web # -- reload
+uv run uvicorn web.main:app --reload
 ```
