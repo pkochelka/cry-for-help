@@ -1,4 +1,4 @@
-# hack-kosice-tears
+# Cry for help
 
 Initial exploration repo for the crystallized-tears train set.
 
